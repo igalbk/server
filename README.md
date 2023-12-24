@@ -1,6 +1,6 @@
 # server
 This projects demonstrates building OpenApi spec (client) from simple Spring boot project created with Spring Initializr
-The generated client is used by the project test and external [consumer](https://github.com/igalbk/client)
+The generated client is used by the project test and external [consumer](https://github.com/igalbk/consumer)
 
 To build the sdk:
 1. Run: `./gradlew openApiGenerate`
