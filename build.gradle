@@ -1,0 +1,85 @@
+import java.time.Instant
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.1'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'org.asciidoctor.jvm.convert' version '3.3.2'
+
+	//https://github.com/springdoc/springdoc-openapi-gradle-plugin
+	id "org.springdoc.openapi-gradle-plugin" version "1.8.0"
+	//https://github.com/OpenAPITools/openapi-generator
+	//https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator-gradle-plugin/README.adoc
+	id "org.openapi.generator" version "7.2.0"
+
+}
+
+group = 'com.bakshan'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+ext {
+	set('snippetsDir', file("build/generated-snippets"))
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+	testImplementation 'com.bakshan:client:+'
+}
+String targetDir = buildDir
+openApi {
+	apiDocsUrl.set("http://localhost:8181/v3/api-docs")
+	outputDir.set(file("$targetDir/docs"))
+	outputFileName.set("swagger.json")
+//	groupedApiMappings.set(["https://localhost:8080/v3/api-docs/groupA" to "swagger-groupA.json",
+//							"https://localhost:8080/v3/api-docs/groupB" to "swagger-groupB.json"])
+	customBootRun {
+		args.set(["--spring.profiles.active=swagger"])
+	}
+}
+
+String epochTimestamp = Instant.now().epochSecond
+
+
+openApiGenerate {
+	// https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators.md
+	//https://github.com/OpenAPITools/openapi-generator/tree/master/modules/openapi-generator/src/main/resources/JavaSpring
+	generatorName = "java"
+	inputSpec = "$targetDir/docs/swagger.json".toString()
+	outputDir = "$targetDir/generated-client"
+	invokerPackage = "{$group}.client"
+	apiPackage = "{$group}.client.controllers"
+	modelPackage = "{$group}.client.models"
+	groupId = "$group"
+	id = "client"
+	version = "1.0.${epochTimestamp}-SNAPSHOT"
+	generateModelTests = false
+	generateApiTests = false
+}
+
+tasks.named('openApiGenerate') {
+	dependsOn generateOpenApiDocs
+}
+
+tasks.named('test') {
+	outputs.dir snippetsDir
+	useJUnitPlatform()
+}
+
+tasks.named('asciidoctor') {
+	inputs.dir snippetsDir
+	dependsOn test
+}
